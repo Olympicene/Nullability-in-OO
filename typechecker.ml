@@ -1,9 +1,9 @@
 (* syntax *)
 type ident = string
 
-type typ = IntTy | NonNullClassTy of ident | NullableClassTy of ident | NullPointerTy (* The kinds of types a variable can have. *)
+type typ = IntTy | NonNullClassTy of ident | NullableClassTy of ident | NullReferenceTy (* The kinds of types a variable can have. *)
 type exp = Num of int | Add of exp * exp | Mul of exp * exp | Var of ident
-         | GetField of exp * ident | NullPointer
+         | GetField of exp * ident | NullReference
 
 type cmd = Assign of ident * exp | Seq of cmd * cmd | Skip
          | New of ident * ident * exp list
@@ -71,7 +71,7 @@ let subtype (ct : context) (t1 : typ) (t2 : typ) : bool = (t1 = t2) ||
   | NonNullClassTy c1, NonNullClassTy c2 
   | NonNullClassTy c1, NullableClassTy c2 (* All non-nullable class types are subtypes of their corresponding nullable types, but the reverse is not true. *)
   | NullableClassTy c1, NullableClassTy c2 -> List.exists ((=) c2) (supers ct c1)
-  | NullPointerTy, NullableClassTy _ -> true
+  | NullReferenceTy, NullableClassTy _ -> true
   | _, _ -> false
     
 let rec type_of (gamma : context) (e : exp) : typ option =
@@ -86,7 +86,7 @@ let rec type_of (gamma : context) (e : exp) : typ option =
       (match type_of gamma obj with 
        | Some NonNullClassTy c -> field_type gamma c f 
        | _ -> None)
-  | NullPointer -> Some NullPointerTy
+  | NullReference -> Some NullReferenceTy
 ;;
 
 let typecheck (gamma : context) (e : exp) (t : typ) : bool =

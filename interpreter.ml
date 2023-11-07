@@ -3,9 +3,9 @@ open List
 (* syntax *)
 type ident = string
 
-type typ = IntTy | NonNullClassTy of ident | NullableClassTy of ident | NullPointerTy (* The kinds of types a variable can have. *)
+type typ = IntTy | NonNullClassTy of ident | NullableClassTy of ident | NullReferenceTy (* The kinds of types a variable can have. *)
 type exp = Num of int | Add of exp * exp | Mul of exp * exp | Var of ident
-         | GetField of exp * ident | NullPointer
+         | GetField of exp * ident | NullReference
 
 type cmd = Assign of ident * exp | Seq of cmd * cmd | Skip
          | New of ident * ident * exp list
