@@ -1,5 +1,3 @@
-(* open List *) (* Fuck off, open statements. *) (* Now that I've deleted you (and fixed the errors), the lsp properly describes lists as lists, not t.*)
-
 (* syntax *)
 type ident = string
 
@@ -62,7 +60,7 @@ let lookup_method_aux (l : mdecl list) (m : ident) : mdecl option =
 let lookup_method (ct : context) (c : ident) (m : ident) : mdecl option =
   lookup_method_aux (List.rev (methods ct c)) m
 
-let rec supers (ct : context) (c : ident) : ident list = (* Answer to problem 1*)
+let rec supers (ct : context) (c : ident) : ident list = (* Answer to problem 1 *)
   match lookup_class ct c with
   | None -> []
   | Some cd when cd.super = "Object" -> ["Object"]
@@ -72,7 +70,7 @@ let subtype (ct : context) (t1 : typ) (t2 : typ) : bool = (t1 = t2) ||
   match t1, t2 with
   | NonNullClassTy c1, NonNullClassTy c2 
   | NonNullClassTy c1, NullableClassTy c2 (* All non-nullable class types are subtypes of their corresponding nullable types, but the reverse is not true. *)
-  | NullableClassTy c1, NullableClassTy c2 -> List.exists ((=) c2) (supers ct c1) (* Haha! I have made this perhaps *too* concise! *)
+  | NullableClassTy c1, NullableClassTy c2 -> List.exists ((=) c2) (supers ct c1)
   | NullPointerTy, NullableClassTy _ -> true
   | _, _ -> false
     
@@ -84,7 +82,7 @@ let rec type_of (gamma : context) (e : exp) : typ option =
        | Some IntTy, Some IntTy -> Some IntTy
        | _, _ -> None)
   | Var x -> lookup_var gamma x  
-  | GetField (obj, f) -> (*Answer to problem 2 *)
+  | GetField (obj, f) -> (* Answer to problem 2 *)
       (match type_of gamma obj with 
        | Some NonNullClassTy c -> field_type gamma c f 
        | _ -> None)
