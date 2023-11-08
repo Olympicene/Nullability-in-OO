@@ -161,14 +161,14 @@ let cmd5 : cmd =
        (* x = s.area(); *)
 
 (* run the tests *)
-let supers_test1 = subtype ct0 (NonNullClassTy "Square") (NonNullClassTy "Object") (* should return true *)
+let supers_test1 = assert (subtype ct0 (NonNullClassTy "Square") (NonNullClassTy "Object") = true) (* should return true *)
 
-let supers_test2 = subtype ct0 (NonNullClassTy "Object") (NonNullClassTy "Square") (* should return false *)
+let supers_test2 = assert (subtype ct0 (NonNullClassTy "Object") (NonNullClassTy "Square") = false) (* should return false *)
 
-let field_test1 = (type_of gamma0 exp2 = Some IntTy) (* should return true *)
+let field_test1 = assert ((type_of gamma0 exp2 = Some IntTy) = true) (* should return true *)
   
-let new_test1 = typecheck_cmd gamma0 cmd3 (* should return true *)
+let new_test1 = assert (typecheck_cmd gamma0 cmd3 = true) (* should return true *)
   
-let invoke_test1 = typecheck_cmd gamma1 cmd4 (* should return true *)
+let invoke_test1 = assert (typecheck_cmd gamma1 cmd4 = true)(* should return true *)
   
-let invoke_test2 = typecheck_cmd gamma0 cmd5 (* should return true *)
+let invoke_test2 = assert (typecheck_cmd gamma0 cmd5 = true) (* should return true *)
