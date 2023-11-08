@@ -1,11 +1,9 @@
-(* open List *) (* Fuck off, open statements. *) (* Now that I've deleted you (and fixed the errors), the lsp properly describes lists as lists, not t.*)
-
 (* syntax *)
 type ident = string
 
-type typ = IntTy | ClassTy of ident (* The kinds of types a variable can have. *)
+type typ = IntTy | NonNullClassTy of ident | NullableClassTy of ident | NullReferenceTy (* The kinds of types a variable can have. *)
 type exp = Num of int | Add of exp * exp | Mul of exp * exp | Var of ident
-         | GetField of exp * ident
+         | GetField of exp * ident | NullReference
 
 type cmd = Assign of ident * exp | Seq of cmd * cmd | Skip
          | New of ident * ident * exp list
@@ -62,7 +60,7 @@ let lookup_method_aux (l : mdecl list) (m : ident) : mdecl option =
 let lookup_method (ct : context) (c : ident) (m : ident) : mdecl option =
   lookup_method_aux (List.rev (methods ct c)) m
 
-let rec supers (ct : context) (c : ident) : ident list = (* Answer to problem 1*)
+let rec supers (ct : context) (c : ident) : ident list = (* Answer to problem 1 *)
   match lookup_class ct c with
   | None -> []
   | Some cd when cd.super = "Object" -> ["Object"]
@@ -70,7 +68,10 @@ let rec supers (ct : context) (c : ident) : ident list = (* Answer to problem 1*
 
 let subtype (ct : context) (t1 : typ) (t2 : typ) : bool = (t1 = t2) ||
   match t1, t2 with
-  | ClassTy c1, ClassTy c2 -> List.exists ((=) c2) (supers ct c1) (* Haha! I have made this perhaps *too* concise! *)
+  | NonNullClassTy c1, NonNullClassTy c2 
+  | NonNullClassTy c1, NullableClassTy c2 (* All non-nullable class types are subtypes of their corresponding nullable types, but the reverse is not true. *)
+  | NullableClassTy c1, NullableClassTy c2 -> List.exists ((=) c2) (supers ct c1)
+  | NullReferenceTy, NullableClassTy _ -> true
   | _, _ -> false
     
 let rec type_of (gamma : context) (e : exp) : typ option =
@@ -81,10 +82,11 @@ let rec type_of (gamma : context) (e : exp) : typ option =
        | Some IntTy, Some IntTy -> Some IntTy
        | _, _ -> None)
   | Var x -> lookup_var gamma x  
-  | GetField (obj, f) -> (*Answer to problem 2 *)
+  | GetField (obj, f) -> (* Answer to problem 2 *)
       (match type_of gamma obj with 
-       | Some ClassTy c -> field_type gamma c f 
+       | Some NonNullClassTy c -> field_type gamma c f 
        | _ -> None)
+  | NullReference -> Some NullReferenceTy
 ;;
 
 let typecheck (gamma : context) (e : exp) (t : typ) : bool =
@@ -103,12 +105,12 @@ let rec typecheck_cmd (gamma : context) (c : cmd) : bool =
        | None -> false)
   | Seq (c1, c2) -> typecheck_cmd gamma c1 && typecheck_cmd gamma c2
   | Skip -> true
-  | New (target, c, cargs) -> (* Problem 3 solution here *) (* TODO: Fix this to care about the type of the target identifier. *)
+  | New (target, c, cargs) ->
       (match lookup_var gamma target with
-       | Some targetTyp -> (subtype gamma (ClassTy c) targetTyp) && (fields gamma c |> types_of_params |> typecheck_list gamma cargs)
+       | Some targetTyp -> (subtype gamma (NonNullClassTy c) targetTyp) && (fields gamma c |> types_of_params |> typecheck_list gamma cargs)
        | _ -> false)
   | Invoke (varname, obj, m, arglist) -> (match type_of gamma obj with (* Problem 4 solution here, though I am not a grad student. *)
-                                            | Some ClassTy c -> (match lookup_method gamma c m, lookup_var gamma varname with 
+                                            | Some NonNullClassTy c -> (match lookup_method gamma c m, lookup_var gamma varname with 
                                                                 | Some mdec, Some ty -> mdec.params |> types_of_params |> typecheck_list gamma arglist 
                                                                   && (subtype gamma mdec.ret ty)
                                                                 | _, _ -> false)
@@ -128,11 +130,11 @@ let ct0 = update (update empty_context
                     body = Seq (Assign ("x", GetField (Var "this", "side")),
                        Return (Add (Var "x", Var "x")))}]})
 
-let gamma0 : context = update_var (update_var (update_var ct0 "s" (ClassTy "Square")) "x" IntTy) "y" IntTy
+let gamma0 : context = update_var (update_var (update_var ct0 "s" (NonNullClassTy "Square")) "x" IntTy) "y" IntTy
 
-let gamma1 : context = update_var (update_var (update_var ct0 "s" (ClassTy "Shape")) "x" IntTy) "y" IntTy
+let gamma1 : context = update_var (update_var (update_var ct0 "s" (NonNullClassTy "Shape")) "x" IntTy) "y" IntTy
 
-let gamma2 : context = update_var (update_var (update_var (update_var ct0 "s2" (ClassTy "Square")) "s1" (ClassTy "Shape")) "x" IntTy) "y" IntTy
+let gamma2 : context = update_var (update_var (update_var (update_var ct0 "s2" (NonNullClassTy "Square")) "s1" (NonNullClassTy "Shape")) "x" IntTy) "y" IntTy
 
 
 let exp2 : exp = GetField (Var "s", "id")
@@ -159,9 +161,9 @@ let cmd5 : cmd =
        (* x = s.area(); *)
 
 (* run the tests *)
-let supers_test1 = subtype ct0 (ClassTy "Square") (ClassTy "Object") (* should return true *)
+let supers_test1 = subtype ct0 (NonNullClassTy "Square") (NonNullClassTy "Object") (* should return true *)
 
-let supers_test2 = subtype ct0 (ClassTy "Object") (ClassTy "Square") (* should return false *)
+let supers_test2 = subtype ct0 (NonNullClassTy "Object") (NonNullClassTy "Square") (* should return false *)
 
 let field_test1 = (type_of gamma0 exp2 = Some IntTy) (* should return true *)
   

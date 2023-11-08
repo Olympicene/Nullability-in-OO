@@ -3,9 +3,9 @@ open List
 (* syntax *)
 type ident = string
 
-type typ = IntTy | ClassTy of ident
+type typ = IntTy | NonNullClassTy of ident | NullableClassTy of ident | NullReferenceTy (* The kinds of types a variable can have. *)
 type exp = Num of int | Add of exp * exp | Mul of exp * exp | Var of ident
-         | GetField of exp * ident
+         | GetField of exp * ident | NullReference
 
 type cmd = Assign of ident * exp | Seq of cmd * cmd | Skip
          | New of ident * ident * exp list
@@ -17,7 +17,7 @@ type mdecl = { ret : typ; mname : ident; params : (typ * ident) list; body : cmd
 type cdecl = { cname : ident; super : ident; fields : (typ * ident) list; methods : mdecl list }
 
 (* contexts *)
-type ty_entry = Ty of typ
+type ty_entry = Ty of typ (* Entries in the type context can either be the types of variables, or the definitions of classes. *)
               | Class of cdecl
 
 type context = ident -> ty_entry option
