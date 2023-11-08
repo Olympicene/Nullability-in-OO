@@ -66,3 +66,16 @@ let test16 : cmd =
        (* s = s.area(); *)
 let res16 = assert (typecheck_cmd gamma1 test16 = false)
 (* bool = false *)
+
+(* New tests begin here: *)
+(* Basic Nullability tests: *)
+let ctn0 = update ct0 "ShapeNode" (Class {cname = "ShapeNode"; super = "Object"; fields = [(NonNullClassTy "Shape", "value"); 
+        (NullableClassTy "ShapeNode", "next")]; methods = []})
+let ctn1 = update ctn0 "ListOfShapes" (Class {cname = "ListOfShapes"; super = "Object"; fields = [(NullableClassTy "ShapeNode", "head"); 
+        (IntTy, "length")]; methods = [{ret = IntTy; mname = "getSize"; params = [];
+        body = Return (GetField (Var "this", "size"))}]})
+
+let gamman0 = update_var (update_var (update_var ctn0 "snode" (NonNullClassTy "ShapeNode")) "snode_null" (NullableClassTy "ShapeNode")) 
+              "s0" (NonNullClassTy "Shape")
+let testn0 = Seq (New ("s0", "Shape", [Num 2]), New ("snode_null", "ShapeNode", [Var "s0"; NullReference]))
+let resn0 = assert (typecheck_cmd gamman0 testn0 = true)

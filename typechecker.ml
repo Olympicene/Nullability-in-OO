@@ -70,7 +70,8 @@ let subtype (ct : context) (t1 : typ) (t2 : typ) : bool = (t1 = t2) ||
   match t1, t2 with
   | NonNullClassTy c1, NonNullClassTy c2 
   | NonNullClassTy c1, NullableClassTy c2 (* All non-nullable class types are subtypes of their corresponding nullable types, but the reverse is not true. *)
-  | NullableClassTy c1, NullableClassTy c2 -> List.exists ((=) c2) (supers ct c1)
+  | NullableClassTy c1, NullableClassTy c2 -> c1 = c2 || List.exists ((=) c2) (supers ct c1) 
+                                              (* Having to check for identical types here again is a bit ugly. Is there an obvious better way? *)
   | NullReferenceTy, NullableClassTy _ -> true
   | _, _ -> false
     
@@ -172,3 +173,5 @@ let new_test1 = assert (typecheck_cmd gamma0 cmd3 = true) (* should return true 
 let invoke_test1 = assert (typecheck_cmd gamma1 cmd4 = true)(* should return true *)
   
 let invoke_test2 = assert (typecheck_cmd gamma0 cmd5 = true) (* should return true *)
+
+let gamma3 : context = update_var gamma2 "s3" (NonNullClassTy "Object")
