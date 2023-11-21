@@ -8,6 +8,7 @@ type exp = Num of int | Add of exp * exp | Mul of exp * exp | Var of ident
 type cmd = Assign of ident * exp | Seq of cmd * cmd | Skip
          | New of ident * ident * exp list
          | Invoke of ident * exp * ident * exp list | Return of exp
+         | IfNotNull of ident * cmd
 
 
 type mdecl = { ret : typ; mname : ident; params : (typ * ident) list; body : cmd }
