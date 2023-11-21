@@ -265,4 +265,6 @@ let ctn1 = update ctn0 "ListOfShapes" (Class {clname = "ListOfShapes"; super = "
 let gamman0 = update_var (update_var (update_var ctn0 "snode" (NonNullClassTy "ShapeNode")) "snode_null" (NullableClassTy "ShapeNode")) 
               "s0" (NonNullClassTy "Shape")
 let testn0 = Seq (New ("s0", "Shape", [Num 2]), New ("snode_null", "ShapeNode", [Var "s0"; NullReference]))
+(* s0 = new Shape(id=2);
+   snode_null = new ShapeNode(Var=s0, next=null) *)
 let resn0 = assert (typecheck_cmd gamman0 testn0 = true)
