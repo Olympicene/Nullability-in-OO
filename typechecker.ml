@@ -123,6 +123,13 @@ let rec typecheck_cmd (gamma : context) (c : cmd) : bool =
       (match lookup_var gamma "__ret" with
        | Some t -> typecheck gamma e t
        | None -> false)
+  | IfNotNull (varname, c) ->
+      (match lookup_var gamma varname with
+      | Some NullableClassTy cl
+      | Some NonNullClassTy cl (* We are allowing them to do an IfNotNull on a non-nullable type, though
+      it does basically nothing. *)
+        -> typecheck_cmd (update_var gamma varname (NonNullClassTy cl)) c
+      | _ -> false)
 
 (* test cases *)  
 let ct0 = update (update empty_context
