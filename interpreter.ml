@@ -15,11 +15,11 @@ type cmd = Assign of ident * exp | Seq of cmd * cmd | Skip
 
 type mdecl = { ret : typ; mname : ident; params : (typ * ident) list; body : cmd }
 
-type cdecl = { cname : ident; super : ident; fields : (typ * ident) list; methods : mdecl list }
+type cldecl = { clname : ident; super : ident; fields : (typ * ident) list; methods : mdecl list }
 
 (* contexts *)
 type ty_entry = Ty of typ (* Entries in the type context can either be the types of variables, or the definitions of classes. *)
-              | Class of cdecl
+              | Class of cldecl
 
 type context = ident -> ty_entry option
 let empty_context = fun x -> None
@@ -28,15 +28,15 @@ let context_update (gamma : context) (x : ident) (e : ty_entry) = fun y -> if y 
 
 let lookup_var (gamma : context) (x : ident) : typ option =
   match context_lookup gamma x with Some (Ty t) -> Some t | _ -> None
-let lookup_class (gamma : context) (x : ident) : cdecl option =
+let lookup_class (gamma : context) (x : ident) : cldecl option =
   match context_lookup gamma x with Some (Class cd) -> Some cd | _ -> None
 let update_var (gamma : context) (x : ident) (t : typ) : context = context_update gamma x (Ty t)
-let update_class (gamma : context) (x : ident) (c : cdecl) : context = context_update gamma x (Class c)
+let update_class (gamma : context) (x : ident) (cl : cldecl) : context = context_update gamma x (Class cl)
 
 (* field and method lookup *)
-let rec fields (ct : context) (c : ident) : (typ * ident) list =
-  if c = "Object" then [] else
-    match lookup_class ct c with
+let rec fields (ct : context) (cl : ident) : (typ * ident) list =
+  if cl = "Object" then [] else
+    match lookup_class ct cl with
     | Some cd -> fields ct cd.super @ cd.fields
     | _ -> []
 
@@ -51,20 +51,20 @@ let field_type_aux (l : (typ * ident) list) (f : ident) : typ option =
   | Some (t, _) -> Some t
   | _ -> None
 
-let field_type (ct : context) (c : ident) (f : ident) : typ option =
-  field_type_aux (rev (fields ct c)) f
+let field_type (ct : context) (cl : ident) (f : ident) : typ option =
+  field_type_aux (rev (fields ct cl)) f
 
-let rec methods (ct : context) (c : ident) : mdecl list =
-  if c = "Object" then [] else
-    match lookup_class ct c with
+let rec methods (ct : context) (cl : ident) : mdecl list =
+  if cl = "Object" then [] else
+    match lookup_class ct cl with
     | Some cd -> methods ct cd.super @ cd.methods
     | _ -> []
 
 let lookup_method_aux (l : mdecl list) (m : ident) : mdecl option =
   find_opt (fun d -> d.mname = m) l
 
-let lookup_method (ct : context) (c : ident) (m : ident) : mdecl option =
-  lookup_method_aux (rev (methods ct c)) m
+let lookup_method (ct : context) (cl : ident) (m : ident) : mdecl option =
+  lookup_method_aux (rev (methods ct cl)) m
 
 (* semantics *)
 type reference = int
@@ -130,15 +130,15 @@ let rec step_cmd (gamma : context) (con : config) : config option =
                      | Some (c1', k', r', s') -> Some (Seq (c1', c2), k', r', s')
                      | None -> None)
   | Skip -> None
-  | New (x, c, es) -> (match eval_exps es r s with
-                       | Some vs -> let (s', p) = alloc s (ObjVal (c, add_args empty_env (names_of_params (fields gamma c)) vs)) in
+  | New (x, cl, es) -> (match eval_exps es r s with
+                       | Some vs -> let (s', p) = alloc s (ObjVal (cl, add_args empty_env (names_of_params (fields gamma cl)) vs)) in
                                       Some (Skip, k, update r x (RefVal p), s')
                        | _ -> None)
   | Invoke (x, e, m, es) -> (match eval_exp e r s, eval_exps es r s with
                              | Some (RefVal p), Some vs ->
                                  (match store_lookup s p with
-                                  | Some (ObjVal (c, _)) ->
-                                      (match lookup_method gamma c m with
+                                  | Some (ObjVal (cl, _)) ->
+                                      (match lookup_method gamma cl m with
                                        | Some md -> Some (md.body, (r, x) :: k, update (add_args r (names_of_params md.params) vs) "this" (RefVal p), s)
                                        | _ -> None)
                                   | _ -> None)
@@ -157,9 +157,9 @@ let run_prog gamma (c : cmd) =
 
 (* test cases *)
 let ct0 = context_update (context_update empty_context
-    "Shape" (Class {cname = "Shape"; super = "Object"; fields = [(IntTy, "id")];
+    "Shape" (Class {clname = "Shape"; super = "Object"; fields = [(IntTy, "id")];
           methods = [{ret = IntTy; mname = "area"; params = []; body = Return (Num 0)}]}))
-    "Square" (Class {cname = "Square"; super = "Shape"; fields = [(IntTy, "side")];
+    "Square" (Class {clname = "Square"; super = "Shape"; fields = [(IntTy, "side")];
                methods = [{ret = IntTy; mname = "area"; params = [];
                     body = Seq (Assign ("x", GetField (Var "this", "side")),
                        Return (Add (Var "x", Var "x")))}]})
