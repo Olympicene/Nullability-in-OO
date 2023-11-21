@@ -32,7 +32,7 @@ let update_var (gamma : context) (x : ident) (t : typ) : context = update gamma 
 let update_class (gamma : context) (x : ident) (cl : cldecl) : context = update gamma x (Class cl)
 
 (* field and method lookup *)
-let rec fields (ct : context) (cl : ident) : (typ * ident) list =
+let rec fields (ct : context) (cl : ident) : (typ * ident) list = (* Note to self: superclass fields are listed first in the result. *)
   if cl = "Object" then [] else
     match lookup_class ct cl with
     | Some cd -> fields ct cd.super @ cd.fields
