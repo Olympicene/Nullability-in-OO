@@ -268,3 +268,8 @@ let testn0 = Seq (New ("s0", "Shape", [Num 2]), New ("snode_null", "ShapeNode", 
 (* s0 = new Shape(id=2);
    snode_null = new ShapeNode(Var=s0, next=null) *)
 let resn0 = assert (typecheck_cmd gamman0 testn0 = true)
+
+let testn1 = Seq (New ("s0", "Square", [Num 7; Num 5]), New ("snode_null", "ShapeNode", [Var "s0"; NullReference]))
+(* s0 = new Square(id=7, side=5);
+   snode_null = new ShapeNode(Var=s0) *)
+let resn1 = assert(typecheck_cmd gamman0 testn1 = true)
