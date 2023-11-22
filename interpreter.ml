@@ -147,6 +147,14 @@ let rec step_cmd (gamma : context) (con : config) : config option =
   | Return e -> (match eval_exp e r s, k with
                  | Some v, (r', x) :: k' -> Some (Skip, k', update r' x v, s)
                  | _, _ -> None)
+  | IfNotNull (varname, c) -> (match lookup_var gamma varname with
+                              | Some NonNullClassTy cl -> Some (c, k, r, s)
+                              | Some NullableClassTy cl ->  (match (eval_exp (Var (varname)) r s) with
+                                                            | None -> None
+                                                            | Some NullRefVal -> Some (Skip, k, r, s)
+                                                            | _ -> Some (c, k, r, s))
+                              | _ -> None)
+
 
 let rec run_config gamma (con : config) : config =
   match step_cmd gamma con with
