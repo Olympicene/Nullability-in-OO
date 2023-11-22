@@ -68,7 +68,7 @@ let lookup_method (ct : context) (cl : ident) (m : ident) : mdecl option =
 
 (* semantics *)
 type reference = int
-type value = IntVal of int | RefVal of reference
+type value = IntVal of int | RefVal of reference | NullRefVal
 
 (* environment implementation *)
 type env = ident -> value option
@@ -107,6 +107,7 @@ let rec eval_exp (e : exp) (r : env) (s : store) : value option =
                                               | Some (ObjVal (_, fs)) -> lookup fs f
                                               | _ -> None)
                         | _ -> None)
+  | NullReference -> Some NullRefVal
 
 let rec eval_exps (es : exp list) (r : env) (s : store) : value list option =
   match es with
