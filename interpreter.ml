@@ -201,9 +201,61 @@ let cmd5 : cmd =
 
 (* run the tests *)
 let field_test1 = eval_exp exp2 env0 store0
-  
 let new_test1 = run_prog ct0 cmd3
-  
 let invoke_test1 = run_prog ct0 cmd4
-  
 let invoke_test2 = run_prog ct0 cmd5
+
+(* Basic Nullability tests: *)
+let ct1 = context_update ct0 "ShapeNode" (Class {clname = "ShapeNode"; super = "Object"; fields = [(NonNullClassTy "Shape", "value");
+        (NullableClassTy "ShapeNode", "next")]; methods = []})
+
+let ct2 = context_update ct1 "ListOfShapes" (Class {clname = "ListOfShapes"; super = "Object"; fields = [(NullableClassTy "ShapeNode", "head");
+        (IntTy, "length")]; methods = [{ret = IntTy; mname = "getSize"; params = [];
+        body = Return (GetField (Var "this", "size"))}]})
+
+let fields1 = update fields0 "snode" (NonNullClassTy "ShapeNode")
+let fields2 = update fields1 "snode_null" (NullableClassTy "ShapeNode")
+let fields3 = update fields2 "s0" (NonNullClassTy "Shape")
+
+
+(* Check Assignment Works *)
+let nullable_test1 = 
+  Seq (New ("s0", "Shape", [Num 2]),  
+       (* s0 = new Shape(id=2); *)
+       New ("snode_null", "ShapeNode", [Var "s0"; NullReference]))
+       (* snode_null = new ShapeNode(Var=s0, next=null) *)
+
+let nullable_test2 = 
+  Seq (New ("s0", "Square", [Num 7; Num 5]), 
+       (* s0 = new Square(id=7, side=5); *)
+       New ("snode_null", "ShapeNode", [Var "s0"]))
+       (* snode_null = new ShapeNode(Var=s0) *)
+
+
+
+(* let nullable_test1 : cmd =
+  Seq (New ("s", "Square", [Num 0; Num 2]),
+       (* s = new Square(0, 2); *)
+  Seq (Assign ("y", NullReference),
+       (* y = null; *)
+       IfNotNull ("s", Assign ("z", Add (GetField (Var "s", "side"), Num 1)))))
+       (* if (s != null) z = s.side + 1; *)
+
+let nullable_test2 : cmd =
+  Seq (Assign ("s", NullReference),
+       (* s = null; *)
+       IfNotNull ("s", Invoke ("x", Var "s", "area", [])))
+       (* if (s != null) x = s.area(); *)
+
+let nullable_test3 : cmd =
+  Seq (New ("s", "Square", [Num 0; Num 2]),
+       (* s = new Square(0, 2); *)
+  Seq (Assign ("s", NullReference),
+       (* s = null; *)
+       IfNotNull ("s", Invoke ("x", Var "s", "area", []))))
+       if (s != null) x = s.area(); *)
+
+(* run the nullability tests *)
+let nullable_test_result1 = run_prog ct2 nullable_test1
+let nullable_test_result2 = run_prog ct2 nullable_test2
+(* let nullable_test_result3 = run_prog ct0 nullable_test3 *)

@@ -255,6 +255,7 @@ let res16 = assert (typecheck_cmd gamma1 test16 = false)
 (* bool = false *)
 
 (* New tests begin here: *)
+
 (* Basic Nullability tests: *)
 let ctn0 = update ct0 "ShapeNode" (Class {clname = "ShapeNode"; super = "Object"; fields = [(NonNullClassTy "Shape", "value");
         (NullableClassTy "ShapeNode", "next")]; methods = []})
