@@ -124,7 +124,10 @@ let rec step_cmd (gamma : context) (con : config) : config option =
   let (c, k, r, s) = con in
   match c with
   | Assign (x, e) -> (match eval_exp e r s with
-                      | Some v -> Some (Skip, k, update r x v, s)
+                      | Some v -> (match lookup_var gamma x with
+                                  | Some NonNullClassTy _
+                                  | Some IntTy -> None
+                                  | _ -> Some (Skip, k, update r x v, s))
                       | None -> None)
   | Seq (Skip, c2) -> Some (c2, k, r, s)
   | Seq (c1, c2) -> (match step_cmd gamma (c1, k, r, s) with
@@ -213,10 +216,9 @@ let ct2 = context_update ct1 "ListOfShapes" (Class {clname = "ListOfShapes"; sup
         (IntTy, "length")]; methods = [{ret = IntTy; mname = "getSize"; params = [];
         body = Return (GetField (Var "this", "size"))}]})
 
-let fields1 = update fields0 "snode" (NonNullClassTy "ShapeNode")
-let fields2 = update fields1 "snode_null" (NullableClassTy "ShapeNode")
-let fields3 = update fields2 "s0" (NonNullClassTy "Shape")
-
+(* let fields1 = update fields0 "snode" (NonNullClassTy "Shape") *)
+(* let fields2 = update fields1 "snode_null" (NullableClassTy "ShapeNode", "value")
+let fields3 = update fields2 "s0" (NonNullClassTy "Shape", "value") *)
 
 (* Check Assignment Works *)
 let nullable_test1 = 
@@ -228,10 +230,36 @@ let nullable_test1 =
 let nullable_test2 = 
   Seq (New ("s0", "Square", [Num 7; Num 5]), 
        (* s0 = new Square(id=7, side=5); *)
-       New ("snode_null", "ShapeNode", [Var "s0"]))
+       New ("snode_null", "ShapeNode", [NullReference; Var "s0"]))
        (* snode_null = new ShapeNode(Var=s0) *)
 
+let nullable_test3 = 
+  Seq (New ("s1", "Square", [Num 7; Num 5]), 
+       (* s1 = new Square(id=7, side=5); *)
+  Seq (New ("s2", "Shape", [Num 2]),
+       (* s0 = new Shape(id=2); *)
+  Seq (New ("snode_end", "ShapeNode", [Var "s1"; NullReference]),
+       (* snode_null = new ShapeNode(Var=s1, next=null) *)
+       New ("snode_start", "ShapeNode", [Var "s2"; Var "snode_end"]))))
+       (* snode_null = new ShapeNode(Var=s2, next=snode_end) *)
 
+(* Throw Error if NonNull signed as Null *)
+let nullable_test4 = 
+  Seq (Assign ("y", NullReference),
+  (* s = new Square(0, 2); *)
+  Seq (New ("snode_null", "ShapeNode", [Var "s0"; NullReference]),
+  (* y = s.side + 1; *)
+  Assign("x", Add(GetField (Var "snode_null", "value"),  NullReference))))
+  (* x = s.area(); *)
+
+  
+(* let nullable_test3 = 
+  Seq (New ("s0", "Shape", [Num 2]),  
+       (* s0 = new Shape(id=2); *)
+  Seq (New ("snode_null", "ShapeNode", [Var "s0"; NullReference]))
+       (* snode_null = new ShapeNode(Var=s0, next=null) *)
+       New ("snode_null", "ShapeNode", [Var "s1"; Var "s2"])))
+       snode_null = new ShapeNode(Var=s0) *)
 
 (* let nullable_test1 : cmd =
   Seq (New ("s", "Square", [Num 0; Num 2]),
@@ -258,4 +286,5 @@ let nullable_test3 : cmd =
 (* run the nullability tests *)
 let nullable_test_result1 = run_prog ct2 nullable_test1
 let nullable_test_result2 = run_prog ct2 nullable_test2
-(* let nullable_test_result3 = run_prog ct0 nullable_test3 *)
+let nullable_test_result3 = run_prog ct2 nullable_test3
+let nullable_test_result4 = run_prog ct2 nullable_test3
